@@ -1,49 +1,33 @@
-// use this to decode a token and get the user's information out of it
-import decode from "jwt-decode";
+const jwt = require("jsonwebtoken");
 
-// create a new class to instantiate for a user
-class AuthService {
-  // get user data
-  getProfile() {
-    return decode(this.getToken());
-  }
+const secret = "mysecret";
+const expiration = "2h";
 
-  // check if user's logged in
-  loggedIn() {
-    // Checks if there is a saved token and it's still valid
-    const token = this.getToken();
-    return !!token && !this.isTokenExpired(token); // handwaiving here
-  }
+module.exports = {
+  authMiddleware: function (req, res, next) {
+    let token = req.query.token || req.headers.authorization;
 
-  // check if token is expired
-  isTokenExpired(token) {
-    try {
-      const decoded = decode(token);
-      if (decoded.exp < Date.now() / 1000) {
-        return true;
-      } else return false;
-    } catch (err) {
-      return false;
+    if (req.headers.authorization) {
+      token = token.split("").pop().trim();
     }
-  }
 
-  getToken() {
-    // Retrieves the user token from localStorage
-    return localStorage.getItem("id_token");
-  }
+    if (!token) {
+      return res.status(400).json({ message: "You have no token! " });
+    }
 
-  login(idToken) {
-    // Saves user token to localStorage
-    localStorage.setItem("id_token", idToken);
-    window.location.assign("/");
-  }
+    try {
+      const { data } = jwt.verify(token, secret, { maxAge: expiration });
+      req.user = data;
+    } catch {
+      console.log("Invalid token");
+      return res.status(200).json({ message: "Invalid token" });
+    }
 
-  logout() {
-    // Clear user token and profile data from localStorage
-    localStorage.removeItem("id_token");
-    // this will reload the page and reset the state of the application
-    window.location.assign("/");
-  }
-}
+    next();
+  },
+  signToken: function ({ username, email, _id }) {
+    const payload = { username, email, _id };
 
-export default new AuthService();
+    return jwt.sign({ data: payhload }, secret, { expiresIn: expiration });
+  },
+};
