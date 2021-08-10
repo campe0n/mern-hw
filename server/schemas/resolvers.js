@@ -2,7 +2,7 @@ const { User } = require("../models");
 
 const resolvers = {
   Query: {
-    users: async () => {
+    me: async () => {
       return await User.find({}).populate("books");
     },
   },
